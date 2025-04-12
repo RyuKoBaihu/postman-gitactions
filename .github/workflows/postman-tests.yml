@@ -25,11 +25,15 @@ jobs:
       - name: Run Postman Collection - Demo.postman_collection.json
         run: |
           newman run .postman/Demo.postman_collection.json \
+          --insecure \
           --reporters cli,html \
           --reporter-html-export newman-report.html
 
+      - name: List files in workspace
+        run: ls -l
+
       - name: Upload Newman Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: newman-html-report
           path: newman-report.html
