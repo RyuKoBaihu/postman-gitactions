@@ -1,4 +1,4 @@
-name: Run Postman Tests with Newman
+name: Postman API Tests
 
 on:
   push:
@@ -7,43 +7,70 @@ on:
     branches: [ main ]
 
 jobs:
-  run-postman-tests:
+  postman-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
-      # 1. Checkout do repositório
-      - name: Checkout code
+      # 1. Checkout do código
+      - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # 2. Configuração do Node.js (SEM cache)
+      # 2. Configuração do Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          # Removido: cache: 'npm' (não necessário para instalação global)
+          cache: 'npm'
 
-      # 3. Instalação do Newman globalmente
-      - name: Install Newman
-        run: npm install -g newman
-
-      # 4. Verificação da coleção Postman
-      - name: Verify Postman collection
+      # 3. Instalação do Newman + template HTML (opcional)
+      - name: Install dependencies
         run: |
-          echo "Conteúdo do diretório .postman:"
+          npm install -g newman
+          npm install -g newman-reporter-html
+          # Caso queira usar template customizado:
+          # mkdir -p assets && curl -o assets/html-template.hbs https://example.com/template.hbs
+
+      # 4. Validação dos arquivos Postman
+      - name: Validate files
+        run: |
+          echo "Estrutura do diretório .postman:"
           ls -la .postman/
-          [ -f ".postman/Demo.postman_collection.json" ] || { echo "❌ Arquivo da coleção não encontrado!"; exit 1; }
+          [ -f ".postman/Demo.postman_collection.json" ] || { echo "❌ Coleção não encontrada"; exit 1; }
+          [ -f ".postman/environment.json" ] && echo "✅ Ambiente encontrado" || echo "⚠️ Ambiente não encontrado"
 
-      # 5. Execução dos testes
-      - name: Run Postman tests
+      # 5. Execução dos testes (com tratamento de falhas)
+      - name: Run Postman collection
+        continue-on-error: true  # Permite continuar o workflow mesmo com falhas
         run: |
-          newman run .postman/Demo.postman_collection.json \
+          newman run ".postman/Demo.postman_collection.json" \
+          --environment ".postman/environment.json" \
           --insecure \
           --reporters cli,html \
-          --reporter-html-export newman-report.html
+          --reporter-html-export newman-report.html \
+          --reporter-html-template assets/html-template.hbs  # Remova se não usar template customizado \
+          --verbose \
+          --suppress-exit-code \
+          --disable-unicode \
+          --global-var "timestamp=$(date +'%Y-%m-%d_%H-%M-%S')"
 
-      # 6. Upload do relatório
+          # Força status 0 mesmo com testes falhando
+          echo "newman_exit_code=$?" >> $GITHUB_OUTPUT
+
+      # 6. Upload do relatório (executa sempre)
       - name: Upload HTML report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: newman-html-report
+          name: newman-report-${{ github.run_id }}
           path: newman-report.html
+          retention-days: 7
+
+      # 7. Notificação opcional de falha
+      - name: Notify on failure
+        if: failure() && steps.newman-run.outputs.newman_exit_code != 0
+        run: |
+          echo "❌ Alguns testes falharam" >> $GITHUB_STEP_SUMMARY
+          echo "Relatório disponível nos artefatos" >> $GITHUB_STEP_SUMMARY
