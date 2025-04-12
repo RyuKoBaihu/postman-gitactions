@@ -1,4 +1,4 @@
-name: Run Postman Tests with Newman
+name: Postman Tests
 
 on:
   push:
@@ -7,35 +7,63 @@ on:
     branches: [ main ]
 
 jobs:
-  run-postman-tests:
+  postman-tests:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
 
     steps:
-      - name: Checkout code
+      # 1. Baixar o código
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      # 2. Configurar Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
+      # 3. Instalar Newman
       - name: Install Newman
-        run: npm install -g newman
+        run: npm install -g newman newman-reporter-html
 
-      - name: Run Postman tests (continue on failure)
-        id: newman-run
+      # 4. Validar arquivos Postman
+      - name: Validate Files
         run: |
+          echo "Estrutura do diretório:"
+          ls -la .postman/
+          [ -f ".postman/Demo.postman_collection.json" ] || { echo "❌ Coleção não encontrada"; exit 1; }
+
+      # 5. Executar testes (com tratamento de falhas)
+      - name: Run Tests
+        id: run-tests
+        continue-on-error: true
+        run: |
+          cd $GITHUB_WORKSPACE
           newman run .postman/Demo.postman_collection.json \
-          --insecure \
           --reporters cli,html \
           --reporter-html-export newman-report.html \
-          --working-dir $GITHUB_WORKSPACE
-          --suppress-exit-code || echo "⚠️ Testes falharam, mas relatório foi gerado"
+          --suppress-exit-code \
+          --disable-unicode \
+          --verbose
           
+          # Forçar criação do arquivo mesmo em falhas graves
+          [ -f "newman-report.html" ] || echo "<html><body><h1>Relatório não gerado</h1></body></html>" > newman-report.html
 
-      - name: Upload HTML report (always)
-        if: always()  # Executa mesmo se o passo anterior falhar
+      # 6. Debug - Mostrar conteúdo gerado
+      - name: Debug Files
+        run: |
+          echo "Conteúdo atual:"
+          ls -la
+          echo "Conteúdo do relatório:"
+          [ -f "newman-report.html" ] && head -n 5 newman-report.html || echo "❌ Arquivo não existe"
+
+      # 7. Upload do relatório (SEMPRE executa)
+      - name: Upload Report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: newman-html-report
-          path: newman-report.html
+          name: newman-report-${{ github.run_number }}
+          path: ${{ github.workspace }}/newman-report.html
+          retention-days: 7
