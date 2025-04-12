@@ -12,28 +12,35 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4  # Atualizado para v4
+        uses: actions/checkout@v4
 
       - name: Install Node.js
-        uses: actions/setup-node@v4  # Atualizado para v4
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'  # Recomendo usar Node.js 20 (LTS)
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install Newman
         run: npm install -g newman
 
-      - name: Run Postman Collection - Demo.postman_collection.json
+      - name: Validate Postman collection exists
+        run: |
+          ls -la .postman/
+          if [ ! -f ".postman/Demo.postman_collection.json" ]; then
+            echo "❌ Collection file not found!"
+            exit 1
+          fi
+
+      - name: Run Postman Collection Tests
         run: |
           newman run .postman/Demo.postman_collection.json \
           --insecure \
           --reporters cli,html \
-          --reporter-html-export newman-report.html
-
-      - name: List files in workspace
-        run: ls -l
+          --reporter-html-export newman-report.html \
+          --working-dir .postman/  # Adicionado para garantir contexto correto
 
       - name: Upload Newman Report
-        uses: actions/upload-artifact@v4  # Atualizado para v4
+        uses: actions/upload-artifact@v4
         with:
           name: newman-html-report
           path: newman-report.html
