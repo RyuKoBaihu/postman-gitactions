@@ -15,46 +15,35 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Configuração do Node.js (com cache para instalação mais rápida)
+      # 2. Configuração do Node.js (SEM cache)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          # Removido: cache: 'npm' (não necessário para instalação global)
 
       # 3. Instalação do Newman globalmente
       - name: Install Newman
         run: npm install -g newman
 
-      # 4. Verificação se a coleção Postman existe
+      # 4. Verificação da coleção Postman
       - name: Verify Postman collection
         run: |
           echo "Conteúdo do diretório .postman:"
           ls -la .postman/
-          if [ ! -f ".postman/Demo.postman_collection.json" ]; then
-            echo "❌ Arquivo da coleção não encontrado!"
-            exit 1
-          fi
+          [ -f ".postman/Demo.postman_collection.json" ] || { echo "❌ Arquivo da coleção não encontrado!"; exit 1; }
 
-      # 5. Execução dos testes com Newman
+      # 5. Execução dos testes
       - name: Run Postman tests
         run: |
           newman run .postman/Demo.postman_collection.json \
           --insecure \
           --reporters cli,html \
-          --reporter-html-export newman-report.html \
-          --working-dir .postman/
+          --reporter-html-export newman-report.html
 
-      # 6. Upload do relatório HTML como artefato
+      # 6. Upload do relatório
       - name: Upload HTML report
         uses: actions/upload-artifact@v4
         with:
           name: newman-html-report
           path: newman-report.html
-          retention-days: 5  # Opcional: define tempo de retenção do artefato
-
-      # 7. (Opcional) Exibe o resumo no log
-      - name: Show test summary
-        run: |
-          echo "✅ Testes Postman concluídos!"
-          echo "Relatório disponível como artefato: newman-html-report"
