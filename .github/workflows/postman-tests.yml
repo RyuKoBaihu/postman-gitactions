@@ -29,7 +29,9 @@ jobs:
           --insecure \
           --reporters cli,html \
           --reporter-html-export newman-report.html \
+          --working-dir $GITHUB_WORKSPACE
           --suppress-exit-code || echo "⚠️ Testes falharam, mas relatório foi gerado"
+          
 
       - name: Upload HTML report (always)
         if: always()  # Executa mesmo se o passo anterior falhar
