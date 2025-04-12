@@ -1,0 +1,304 @@
+{
+	"info": {
+		"_postman_id": "05443f11-15b1-4933-8dd9-3cad76312aaf",
+		"name": "demo",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "21001611"
+	},
+	"item": [
+		{
+			"name": "login",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"mor_2314\",\r\n    \"password\": \"83r5^_\"\r\n}\r\n\t",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://fakestoreapi.com/auth/login",
+					"protocol": "https",
+					"host": [
+						"fakestoreapi",
+						"com"
+					],
+					"path": [
+						"auth",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Include product",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.expect(pm.response.code).to.eql(200); // Verifica se o status code é 200\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Response status is OK\", function () {\r",
+							"    pm.expect(pm.response.status).to.eql('OK'); // Verifica se o status da resposta é \"OK\"\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"title\": \"Default Title\",\r\n  \"price\": \"10.0\",\r\n  \"description\": \"Default Description\",\r\n  \"image\": \"https://default-image.com\",\r\n  \"category\": \"Default Category\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://fakestoreapi.com/products/",
+					"protocol": "https",
+					"host": [
+						"fakestoreapi",
+						"com"
+					],
+					"path": [
+						"products",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create product",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"pm.sendRequest({\r",
+							"    url: 'https://fakestoreapi.com/auth/login',\r",
+							"    method: 'POST',\r",
+							"    header: {\r",
+							"        'Content-Type': 'application/json'\r",
+							"    },\r",
+							"    body: {\r",
+							"        mode: 'raw',\r",
+							"        raw: JSON.stringify({\r",
+							"            \"username\": \"mor_2314\",\r",
+							"            \"password\": \"83r5^_\"\r",
+							"        }\r",
+							"        )\r",
+							"    }\r",
+							"}, function (err, res) {\r",
+							"    if (!err && res.code === 200) {\r",
+							"        let json = res.json();\r",
+							"        // Supondo que o token vem na resposta nesse formato:\r",
+							"        // { \"token\": \"abc.def.ghi\" }\r",
+							"        pm.environment.set(\"authToken\", json.token);\r",
+							"    } else {\r",
+							"        console.error(\"Erro ao obter token:\", err || res);\r",
+							"    }\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.sendRequest({\r",
+							"    url: 'https://fakestoreapi.com/products/1',\r",
+							"    method: 'GET'\r",
+							"}, function (err, res) {\r",
+							"    pm.test(\"Product deleted\", function () {\r",
+							"        pm.expect(res.code).to.eql(404); // Espera que o status code seja 404\r",
+							"    });\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://fakestoreapi.com/products/1",
+					"protocol": "https",
+					"host": [
+						"fakestoreapi",
+						"com"
+					],
+					"path": [
+						"products",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Updating product",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Recuperando o corpo da requisição que foi enviado no PATCH\r",
+							"let requestBody = JSON.parse(pm.request.body.raw);\r",
+							"let sentDescription = requestBody.description; // O valor que você enviou (neste caso, \"test\")\r",
+							"\r",
+							"// Fazendo uma requisição GET para verificar o valor atualizado\r",
+							"pm.sendRequest({\r",
+							"    url: 'https://fakestoreapi.com/products/7',  // Troque pela URL do seu GET para pegar o produto específico\r",
+							"    method: 'GET'\r",
+							"}, function (err, res) {\r",
+							"    if (!err && res.code === 200) {\r",
+							"        let responseData = res.json();\r",
+							"        let updatedDescription = responseData.description;\r",
+							"\r",
+							"        // Comparando o description atual com o que foi enviado\r",
+							"        pm.test(\"Description should be updated to 'test'\", function () {\r",
+							"            pm.expect(updatedDescription).to.eql(sentDescription);\r",
+							"        });\r",
+							"    } else {\r",
+							"        console.log(\"Erro ao fazer GET:\", err || res);\r",
+							"    }\r",
+							"});\r",
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.expect(pm.response.code).to.eql(200); // Verifica se o status code é 200\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Response status is OK\", function () {\r",
+							"    pm.expect(pm.response.status).to.eql('OK'); // Verifica se o status da resposta é \"OK\"\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "PATCH",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{ \r\n\"description\": \"test\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://fakestoreapi.com/products/7",
+					"protocol": "https",
+					"host": [
+						"fakestoreapi",
+						"com"
+					],
+					"path": [
+						"products",
+						"7"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Search products",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.expect(pm.response.code).to.eql(200); // Verifica se o status code é 200\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Response status is OK\", function () {\r",
+							"    pm.expect(pm.response.status).to.eql('OK'); // Verifica se o status da resposta é \"OK\"\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\"title\": \"test product\",\r\n\"price\": \"13.5\",\r\n\"description\": \"lorem ipsum set\",\r\n\"image\": \"https://i.pravatar.cc\",\r\n\"category\": \"electronic\"\r\n}\r\n\t",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://fakestoreapi.com/products/7",
+					"protocol": "https",
+					"host": [
+						"fakestoreapi",
+						"com"
+					],
+					"path": [
+						"products",
+						"7"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
